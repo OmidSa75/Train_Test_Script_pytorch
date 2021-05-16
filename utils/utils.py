@@ -9,6 +9,7 @@ class TransForms:
         self.img_size = img_size
         self.train_tfms = self.return_train_transforms()
         self.test_tfms = self.return_test_transforms()
+        self.simple_tfms = self.simple_transform()
 
     def pad_image(self, image):
         padded_im = functional.pad(image, self.get_padding(image))  # torchvision.transforms.functional.pad
@@ -59,6 +60,13 @@ class TransForms:
         ])
         return tfms
 
+    def simple_transform(self):
+        tfms = transforms.Compose([
+            transforms.Resize([self.img_size[0], self.img_size[1]], transforms.transforms.InterpolationMode.BICUBIC),
+            transforms.ToTensor(),
+        ])
+        return tfms
+
 
 class Utils:
     @staticmethod
@@ -80,3 +88,9 @@ class Utils:
         for idx, val in enumerate(images):
             weight[idx] = weight_per_class[val[1]]
         return weight
+
+    @staticmethod
+    def to_img(x: torch.Tensor, size):
+        x = x.clamp(0, 1)
+        x = x.view(x.size(0), 1, 28, 28)
+        return x

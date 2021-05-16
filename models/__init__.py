@@ -1,2 +1,2 @@
-from .autoencoder import ConvAutoEncoder
+from .autoencoder import ConvAutoEncoder, VAE
 from .classifier import AttentionBlock

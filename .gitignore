@@ -1,5 +1,7 @@
 .idea
 __pycache__
 breast_cancer
+MNIST
+generated_images
 
 *.pth

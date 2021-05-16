@@ -1,10 +1,14 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
+from torchvision.utils import save_image
 import os
 from tqdm import tqdm
 
+import config
+from loss import VAELoss
 
-class TrainTest:
+
+class VAETrainTest:
     def __init__(self, args, model: torch.nn.Module, train_dataset: Dataset, test_dataset: Dataset, utils):
         self.utils = utils
         self.args = args
@@ -16,6 +20,7 @@ class TrainTest:
         self.model = model.to(self.device)
 
         os.makedirs(os.path.join(self.args.ckpt_dir, self.model.name), exist_ok=True)
+        os.makedirs(self.args.save_gen_images_dir, exist_ok=True)
 
         ''' optimizer '''
 
@@ -23,12 +28,12 @@ class TrainTest:
 
         '''dataset and dataloader'''
         self.train_dataset = train_dataset
-        weights = self.utils.make_weights_for_balanced_classes(self.train_dataset.imgs, len(self.train_dataset.classes))
-        weights = torch.DoubleTensor(weights)
-        sampler = WeightedRandomSampler(weights, len(weights))
+        # weights = self.utils.make_weights_for_balanced_classes(self.train_dataset.data, len(self.train_dataset.classes))
+        # weights = torch.DoubleTensor(weights)
+        # sampler = WeightedRandomSampler(weights, len(weights))
 
         self.train_dataloader = DataLoader(self.train_dataset, self.batch_size,
-                                           num_workers=args.num_worker, sampler=sampler,
+                                           num_workers=args.num_worker,
                                            pin_memory=True)
 
         self.test_dataset = test_dataset
@@ -36,7 +41,7 @@ class TrainTest:
                                           pin_memory=True)
 
         '''loss function'''
-        self.criterion = torch.nn.BCELoss().to(self.device)
+        self.criterion = VAELoss().to(self.device)
 
         '''scheduler'''
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=3)
@@ -50,11 +55,12 @@ class TrainTest:
             train_loss = 0.0
 
             for data, _ in tqdm(self.train_dataloader, desc="Training"):
+                data = data.flatten(1)
                 data = data.to(self.device)
                 self.optimizer.zero_grad()
 
-                outputs = self.model(data)
-                loss = self.criterion(outputs, data)
+                recon_batch, mu, logvar = self.model(data)
+                loss = self.criterion(recon_batch, data, mu, logvar)
                 loss.backward()
                 self.optimizer.step()
 
@@ -62,7 +68,11 @@ class TrainTest:
 
             epoch_loss = train_loss / len(self.train_dataloader)
 
-            print("\n\033[0;32mEpoch: {} [Train Loss: {:.4f}\033[0;0m".format(epoch, epoch_loss))
+            print("\n\033[0;32mEpoch: {} [Train Loss: {:.4f}]\033[0;0m".format(epoch, epoch_loss))
+
+            if epoch % self.args.save_gen_images == 0:
+                save_imgs = self.utils.to_img(recon_batch.cpu().data, self.args.img_size)
+                save_image(save_imgs, os.path.join(self.args.save_gen_images_dir, f'epoch_{epoch}.jpg'))
 
             if epoch % self.args.save_iteration == 0:
                 torch.save(self.model.state_dict(),
@@ -79,9 +89,10 @@ class TrainTest:
         test_loss = 0.0
 
         for data, _ in tqdm(self.test_dataloader, desc="*Testing*"):
+            data = data.flatten(1)
             data = data.to(self.device)
-            outputs = self.model(data)
-            loss = self.criterion(outputs, data)
+            recon_batch, mu, logvar = self.model(data)
+            loss = self.criterion(recon_batch, data, mu, logvar)
 
             test_loss += loss
 
