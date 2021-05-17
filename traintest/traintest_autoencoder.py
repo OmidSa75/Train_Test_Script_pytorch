@@ -55,7 +55,6 @@ class VAETrainTest:
             train_loss = 0.0
 
             for data, _ in tqdm(self.train_dataloader, desc="Training"):
-                data = data.flatten(1)
                 data = data.to(self.device)
                 self.optimizer.zero_grad()
 
@@ -89,7 +88,6 @@ class VAETrainTest:
         test_loss = 0.0
 
         for data, _ in tqdm(self.test_dataloader, desc="*Testing*"):
-            data = data.flatten(1)
             data = data.to(self.device)
             recon_batch, mu, logvar = self.model(data)
             loss = self.criterion(recon_batch, data, mu, logvar)

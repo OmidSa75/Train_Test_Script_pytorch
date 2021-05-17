@@ -4,6 +4,36 @@ from torch.nn import functional as F
 from torch.autograd import Variable
 
 
+class ConvActBatNorm(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=(1, 1), padding=(0, 0)):
+        super(ConvActBatNorm, self).__init__()
+
+        self.seq = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.ReLU(),
+            nn.BatchNorm2d(out_channels)
+        )
+
+    def forward(self, x):
+        x = self.seq(x)
+        return x
+
+
+class ConvTActBatNorm(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=(1, 1), padding=(0, 0)):
+        super().__init__()
+
+        self.seq = nn.Sequential(
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.ReLU(),
+            nn.BatchNorm2d(out_channels)
+        )
+
+    def forward(self, x):
+        x = self.seq(x)
+        return x
+
+
 class ConvAutoEncoder(nn.Module):
     def __init__(self):
         super(ConvAutoEncoder, self).__init__()
@@ -63,3 +93,51 @@ class VAE(nn.Module):
         mu, logvar = self.encode(x)
         z = self.reparametrize(mu, logvar)
         return self.decode(z), mu, logvar
+
+
+class VAEConv(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.name = "VAEConv"
+        self.encoder = nn.Sequential(
+            ConvActBatNorm(1, 16, (3, 3), stride=(1, 1), padding=(1, 1)),
+            ConvActBatNorm(16, 8, (3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.MaxPool2d(2, stride=2),
+            ConvActBatNorm(8, 8, (3, 3), stride=(1, 1), padding=(1, 1)),
+            ConvActBatNorm(8, 8, (3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.MaxPool2d(2, stride=2)
+        )
+        self.conv1 = ConvActBatNorm(8, 8, (3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv2 = ConvActBatNorm(8, 8, (3, 3), stride=(1, 1), padding=(1, 1))
+
+        self.decoder = nn.Sequential(
+            ConvTActBatNorm(8, 8, (3, 3), stride=(2, 2), padding=(1, 1)),
+            ConvTActBatNorm(8, 8, (3, 3), stride=(2, 2), padding=(1, 1)),
+            ConvTActBatNorm(8, 16, (3, 3), stride=(1, 1), padding=(1, 1)),
+            ConvTActBatNorm(16, 16, (3, 3), stride=(1, 1)),
+            ConvTActBatNorm(16, 1, (2, 2), stride=(1, 1)),
+        )
+
+    def encode(self, x):
+        x = self.encoder(x)
+        return self.conv1(x), self.conv2(x)
+
+    def reparametrize(self, mu, logvar: torch.Tensor):
+        std = logvar.mul(0.5).exp_()
+        if torch.cuda.is_available():
+            eps = torch.cuda.FloatTensor(std.size()).normal_()
+        else:
+            eps = torch.FloatTensor(std.size()).normal_()
+
+        return eps.mul(std).add_(mu)
+
+    def decode(self, x):
+        x = self.decoder(x)
+        return x
+
+    def forward(self, x):
+        mu, logvar = self.encode(x)
+        z = self.reparametrize(mu, logvar)
+        recon = self.decode(z)
+        # recon = F.interpolate(recon, size=(28, 28))
+        return recon, mu, logvar

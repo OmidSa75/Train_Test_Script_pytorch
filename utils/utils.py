@@ -92,5 +92,4 @@ class Utils:
     @staticmethod
     def to_img(x: torch.Tensor, size):
         x = x.clamp(0, 1)
-        x = x.view(x.size(0), 1, 28, 28)
         return x
