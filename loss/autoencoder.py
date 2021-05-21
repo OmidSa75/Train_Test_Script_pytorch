@@ -5,7 +5,7 @@ from torch import nn
 class VAELoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.reconstruction_function = nn.MSELoss(size_average=False)
+        self.reconstruction_function = nn.MSELoss(reduction='sum')
 
     def forward(self, recon_x, x, mu, logvar):
         """

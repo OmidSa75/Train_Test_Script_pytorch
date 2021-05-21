@@ -100,22 +100,20 @@ class VAEConv(nn.Module):
         super().__init__()
         self.name = "VAEConv"
         self.encoder = nn.Sequential(
-            ConvActBatNorm(1, 16, (3, 3), stride=(1, 1), padding=(1, 1)),
-            ConvActBatNorm(16, 8, (3, 3), stride=(1, 1), padding=(1, 1)),
+            ConvActBatNorm(1, 32, (3, 3), stride=(1, 1), padding=(1, 1)),
             nn.MaxPool2d(2, stride=2),
-            ConvActBatNorm(8, 8, (3, 3), stride=(1, 1), padding=(1, 1)),
-            ConvActBatNorm(8, 8, (3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.MaxPool2d(2, stride=2)
+            ConvActBatNorm(32, 16, (3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.MaxPool2d(2, stride=2),
         )
-        self.conv1 = ConvActBatNorm(8, 8, (3, 3), stride=(1, 1), padding=(1, 1))
-        self.conv2 = ConvActBatNorm(8, 8, (3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv1 = ConvActBatNorm(16, 8, (3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv2 = ConvActBatNorm(16, 8, (3, 3), stride=(1, 1), padding=(1, 1))
 
         self.decoder = nn.Sequential(
-            ConvTActBatNorm(8, 8, (3, 3), stride=(2, 2), padding=(1, 1)),
-            ConvTActBatNorm(8, 8, (3, 3), stride=(2, 2), padding=(1, 1)),
             ConvTActBatNorm(8, 16, (3, 3), stride=(1, 1), padding=(1, 1)),
-            ConvTActBatNorm(16, 16, (3, 3), stride=(1, 1)),
-            ConvTActBatNorm(16, 1, (2, 2), stride=(1, 1)),
+            nn.Upsample(scale_factor=2),
+            ConvTActBatNorm(16, 32, (3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Upsample(scale_factor=2),
+            ConvTActBatNorm(32, 1, (3, 3), stride=(1, 1), padding=(1, 1)),
         )
 
     def encode(self, x):
