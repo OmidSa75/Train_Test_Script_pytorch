@@ -28,12 +28,12 @@ class VAETrainTest:
 
         '''dataset and dataloader'''
         self.train_dataset = train_dataset
-        # weights = self.utils.make_weights_for_balanced_classes(self.train_dataset.data, len(self.train_dataset.classes))
-        # weights = torch.DoubleTensor(weights)
-        # sampler = WeightedRandomSampler(weights, len(weights))
+        weights = self.utils.make_weights_for_balanced_classes(self.train_dataset.imgs, len(self.train_dataset.classes))
+        weights = torch.DoubleTensor(weights)
+        sampler = WeightedRandomSampler(weights, len(weights))
 
         self.train_dataloader = DataLoader(self.train_dataset, self.batch_size,
-                                           num_workers=args.num_worker,
+                                           num_workers=args.num_worker, sampler=sampler,
                                            pin_memory=True)
 
         self.test_dataset = test_dataset

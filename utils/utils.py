@@ -37,7 +37,7 @@ class TransForms:
 
     def return_train_transforms(self):
         tfms = transforms.Compose([
-            # transforms.Lambda(self.pad_image),
+            transforms.Lambda(self.pad_image),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomAdjustSharpness(2),
@@ -47,16 +47,16 @@ class TransForms:
             transforms.Resize([self.img_size[0], self.img_size[1]], transforms.transforms.InterpolationMode.BICUBIC),
             transforms.ToTensor(),
             transforms.RandomErasing(0.25),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
         return tfms
 
     def return_test_transforms(self):
         tfms = transforms.Compose([
-            # transforms.Lambda(self.pad_image),
+            transforms.Lambda(self.pad_image),
             transforms.Resize([self.img_size[0], self.img_size[1]], transforms.transforms.InterpolationMode.BICUBIC),
             transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
         return tfms
 
