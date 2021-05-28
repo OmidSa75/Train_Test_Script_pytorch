@@ -22,7 +22,7 @@ class VAEClsConv(nn.Module):
             ConvTActBatNorm(32, 64, (3, 3), stride=(1, 1), padding=(1, 1)),
             nn.Upsample(scale_factor=2),
             ConvTActBatNorm(64, 3, (3, 3), stride=(1, 1), padding=(1, 1)),
-            # nn.Sigmoid()
+            nn.Tanh()
         )
 
         self.classifier_mu = nn.Sequential(
