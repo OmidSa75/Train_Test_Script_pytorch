@@ -1,38 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.autograd import Variable
-from collections import OrderedDict
-
-
-class ConvActBatNorm(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=(1, 1), padding=(0, 0)):
-        super(ConvActBatNorm, self).__init__()
-
-        self.seq = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride),
-            nn.ReLU(),
-            nn.BatchNorm2d(out_channels)
-        )
-
-    def forward(self, x):
-        x = self.seq(x)
-        return x
-
-
-class ConvTActBatNorm(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=(1, 1), padding=(0, 0)):
-        super().__init__()
-
-        self.seq = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride),
-            nn.ReLU(),
-            nn.BatchNorm2d(out_channels)
-        )
-
-    def forward(self, x):
-        x = self.seq(x)
-        return x
+from .modules import ConvActBatNorm, ConvTActBatNorm
 
 
 class ConvAutoEncoder(nn.Module):
