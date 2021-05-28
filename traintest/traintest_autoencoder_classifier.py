@@ -76,7 +76,7 @@ class VAEClsTrainTest:
             epoch_cls_loss = train_cls_loss / len(self.train_dataloader)
 
             print("\n\033[0;32mEpoch: {} [Train Loss: {:.4f}] [Train Acc: {:.4f}]"
-                  "\n[VAE Loss: {}] [Cls Loss: {}]\033[0;0m".format(epoch, epoch_loss, epoch_acc, epoch_vae_loss, epoch_cls_loss))
+                  "\n[VAE Loss: {:.4f}] [Cls Loss: {:.4f}]\033[0;0m".format(epoch, epoch_loss, epoch_acc, epoch_vae_loss, epoch_cls_loss))
 
             if epoch % self.args.save_gen_images == 0:
                 save_imgs = self.utils.to_img(recon_batch.cpu().data, self.args.img_size)
@@ -116,4 +116,5 @@ class VAEClsTrainTest:
         epoch_vae_loss = test_vae_loss / len(self.test_dataloader)
         epoch_cls_loss = test_cls_loss / len(self.test_dataloader)
 
-        print("\n\033[1;34m** Test: [Test Loss: {:.4f}] [Test Acc: {:.4f}]**\033[0;0m".format(epoch_loss, epoch_acc))
+        print("\n\033[1;34m** Test: [Test Loss: {:.4f}] [Test Acc: {:.4f}]"
+              "\n[VAE Loss: {:.4f}] [Cls Loss: {:.4f}]**\033[0;0m".format(epoch_loss, epoch_acc, epoch_vae_loss, epoch_cls_loss))
