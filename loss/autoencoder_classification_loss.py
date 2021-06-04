@@ -2,35 +2,44 @@ import torch
 from torch import nn
 
 
-class VAELoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.reconstruction_function = nn.MSELoss(reduction='sum')
+def gaussian_likelihood(recon_x, logscale, x):
+    scale = torch.exp(logscale)
+    mean = recon_x
+    dist = torch.distributions.Normal(mean, scale)
 
-    def forward(self, recon_x, x, mu, logvar):
-        """
+    # measure prob of seeing image under p(x|z)
+    log_pxz = dist.log_prob(x)
+    return log_pxz.sum(dim=(1, 2, 3))
 
-        :param recon_x:  Generated Image.
-        :param x: Original Image.
-        :param mu: Latent Mean.
-        :param logvar: Latent Log Variance.
-        :return: BCE + KLD loss
-        """
-        bce = self.reconstruction_function(recon_x, x)
-        kld_element = mu.pow(2).add_(logvar.exp()).mul_(-1).add_(1).add_(logvar)
-        kld = torch.sum(kld_element).mul_(-0.5)
 
-        return bce + kld
+def kl_divergence(z, mu, std):
+    # 1. define the first two probabilities (in this case Normal for both)
+    p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
+    q = torch.distributions.Normal(mu, std)
+
+    # 2. get the probabilities from the equation
+    log_qzx = q.log_prob(z)
+    log_pz = p.log_prob(z)
+
+    # kl
+    kl = (log_qzx - log_pz)
+    kl = kl.sum((1, 2, 3))
+    return kl
 
 
 class VAEClsLoss(nn.Module):
     def __init__(self):
         super(VAEClsLoss, self).__init__()
-        self.vae_loss = VAELoss()
         self.cross_entropy = nn.CrossEntropyLoss()
 
-    def forward(self, recon_x, x, mu, logvar, pred_classes, labels):
-        vae_loss = self.vae_loss(recon_x, x, mu, logvar)
+    def forward(self, recon_x, x, z, mu, std, logscale, pred_classes, labels):
         cls_loss = self.cross_entropy(pred_classes, labels)
 
-        return vae_loss + cls_loss, vae_loss, cls_loss
+        recon_loss = gaussian_likelihood(recon_x, logscale, x)
+        kl = kl_divergence(z, mu, std)
+
+        # elbo
+        elbo = kl - recon_loss
+        elbo = elbo.mean()
+
+        return elbo + cls_loss, elbo, cls_loss

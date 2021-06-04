@@ -59,10 +59,11 @@ class VAEClsTrainTest:
             for data, labels in tqdm(self.train_dataloader, desc="Training"):
                 data, labels = data.to(self.device), labels.to(self.device)
                 self.optimizer.zero_grad()
-
-                recon_batch, mu, logvar, pred_classes = self.model(data)
-                total_loss, vae_loss, cls_loss = self.criterion(recon_batch, data, mu, logvar, pred_classes, labels)
-                total_loss.backward()
+                recon_batch, mu, z, std, logscale, pred_classes = self.model(data)
+                total_loss, vae_loss, cls_loss = self.criterion(recon_batch, data, z, mu, std, logscale, pred_classes,
+                                                                labels)
+                vae_loss.backward(retain_graph=True)
+                cls_loss.backward()
                 self.optimizer.step()
 
                 train_loss += total_loss.data
@@ -76,7 +77,8 @@ class VAEClsTrainTest:
             epoch_cls_loss = train_cls_loss / len(self.train_dataloader)
 
             print("\n\033[0;32mEpoch: {} [Train Loss: {:.4f}] [Train Acc: {:.4f}]"
-                  "\n[VAE Loss: {:.4f}] [Cls Loss: {:.4f}]\033[0;0m".format(epoch, epoch_loss, epoch_acc, epoch_vae_loss, epoch_cls_loss))
+                  "\n[VAE Loss: {:.4f}] [Cls Loss: {:.4f}]\033[0;0m".format(epoch, epoch_loss, epoch_acc,
+                                                                            epoch_vae_loss, epoch_cls_loss))
 
             if epoch % self.args.save_gen_images == 0:
                 save_imgs = self.utils.to_img(recon_batch.cpu().data, self.args.img_size)
@@ -103,8 +105,8 @@ class VAEClsTrainTest:
             data, labels = data.to(self.device), labels.to(self.device)
             self.optimizer.zero_grad()
 
-            recon_batch, mu, logvar, pred_classes = self.model(data)
-            total_loss, vae_loss, cls_loss = self.criterion(recon_batch, data, mu, logvar, pred_classes, labels)
+            recon_batch, mu, z, std, logscale, pred_classes = self.model(data)
+            total_loss, vae_loss, cls_loss = self.criterion(recon_batch, data, z, mu, std, logscale, pred_classes, labels)
 
             test_loss += total_loss.data
             test_acc += self.utils.calc_acc(pred_classes, labels)
@@ -117,4 +119,5 @@ class VAEClsTrainTest:
         epoch_cls_loss = test_cls_loss / len(self.test_dataloader)
 
         print("\n\033[1;34m** Test: [Test Loss: {:.4f}] [Test Acc: {:.4f}]"
-              "\n[VAE Loss: {:.4f}] [Cls Loss: {:.4f}]**\033[0;0m".format(epoch_loss, epoch_acc, epoch_vae_loss, epoch_cls_loss))
+              "\n[VAE Loss: {:.4f}] [Cls Loss: {:.4f}]**\033[0;0m".format(epoch_loss, epoch_acc, epoch_vae_loss,
+                                                                          epoch_cls_loss))
